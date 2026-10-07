@@ -10,7 +10,7 @@ export async function getExpensesCollection() {
   const clientPromise = globalForMongo.mongoClientPromise ?? new MongoClient(uri).connect();
   globalForMongo.mongoClientPromise = clientPromise;
   const connectedClient = await clientPromise;
-  const database = process.env.MONGODB_DB || "pocketwise";
+  const database = process.env.MONGODB_DB || "pocketwise-dev";
   return connectedClient.db(database).collection("expenses");
 }
 
@@ -20,6 +20,6 @@ export async function getUsersCollection() {
   const clientPromise = globalForMongo.mongoClientPromise ?? new MongoClient(uri).connect();
   globalForMongo.mongoClientPromise = clientPromise;
   const connectedClient = await clientPromise;
-  const database = process.env.MONGODB_DB || "pocketwise";
+  const database = process.env.MONGODB_DB || "pocketwise-dev";
   return connectedClient.db(database).collection("users");
 }
