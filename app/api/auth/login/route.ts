@@ -14,12 +14,22 @@ export async function POST(request: Request) {
     if (!user || typeof user.passwordHash !== "string" || !(await verifyPassword(password, user.passwordHash))) {
       return Response.json({ error: "Email or password is incorrect." }, { status: 401 });
     }
-    const response = Response.json({ user: { id: (user._id as ObjectId).toString(), name: user.name, email: user.email } });
+    const response = Response.json({
+      user: { id: (user._id as ObjectId).toString(), name: user.name, email: user.email },
+    });
     response.headers.set("Set-Cookie", createSessionCookie((user._id as ObjectId).toString()));
     return response;
   } catch (error) {
     console.error("Sign in error:", error);
     const status = error instanceof Error && error.message.includes("SESSION_SECRET") ? 503 : 500;
-    return Response.json({ error: status === 503 ? "Add a 32-character SESSION_SECRET to .env.local." : "Sign in is temporarily unavailable. Please try again." }, { status });
+    return Response.json(
+      {
+        error:
+          status === 503
+            ? "Add a 32-character SESSION_SECRET to .env.local."
+            : "Sign in is temporarily unavailable. Please try again.",
+      },
+      { status },
+    );
   }
 }

@@ -22,6 +22,12 @@ export default function AuthScreen({
     setError("");
     const values = new FormData(event.currentTarget);
     const body = Object.fromEntries(values.entries());
+    if (mode === "signup" && values.get("password") !== values.get("confirmPassword")) {
+      setError("Your passwords don't match.");
+      setBusy(false);
+      return;
+    }
+    delete body.confirmPassword;
     try {
       const response = await fetch(`/api/auth/${mode === "login" ? "login" : "signup"}`, {
         method: "POST",
@@ -111,6 +117,20 @@ export default function AuthScreen({
                   placeholder={mode === "signup" ? "At least 8 characters" : "Your password"}
                 />
               </label>
+              {mode === "signup" && (
+                <label>
+                  Confirm password
+                  <input
+                    name="confirmPassword"
+                    type="password"
+                    autoComplete="new-password"
+                    minLength={8}
+                    maxLength={128}
+                    required
+                    placeholder="Re-enter your password"
+                  />
+                </label>
+              )}
               {error && (
                 <div className="auth-error" role="alert">
                   {error}

@@ -11,7 +11,9 @@ function secret() {
   return value;
 }
 
-export function ensureSessionSecret() { secret(); }
+export function ensureSessionSecret() {
+  secret();
+}
 
 export async function hashPassword(password: string) {
   const salt = randomBytes(16);
@@ -41,7 +43,11 @@ export function clearSessionCookie() {
 }
 
 export function readSession(request: Request): { userId: string } | null {
-  const cookie = request.headers.get("cookie")?.split(";").map((part) => part.trim()).find((part) => part.startsWith(`${sessionCookie}=`));
+  const cookie = request.headers
+    .get("cookie")
+    ?.split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${sessionCookie}=`));
   const token = cookie?.slice(sessionCookie.length + 1);
   if (!token) return null;
   const separator = token.lastIndexOf(".");
@@ -50,11 +56,21 @@ export function readSession(request: Request): { userId: string } | null {
   const signature = token.slice(separator + 1);
   const expected = createHmac("sha256", secret()).update(payload).digest();
   let supplied: Buffer;
-  try { supplied = Buffer.from(signature, "base64url"); } catch { return null; }
+  try {
+    supplied = Buffer.from(signature, "base64url");
+  } catch {
+    return null;
+  }
   if (supplied.length !== expected.length || !timingSafeEqual(supplied, expected)) return null;
   try {
-    const data = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as { userId?: unknown; expiresAt?: unknown };
-    if (typeof data.userId !== "string" || typeof data.expiresAt !== "number" || data.expiresAt <= Date.now() / 1000) return null;
+    const data = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as {
+      userId?: unknown;
+      expiresAt?: unknown;
+    };
+    if (typeof data.userId !== "string" || typeof data.expiresAt !== "number" || data.expiresAt <= Date.now() / 1000)
+      return null;
     return { userId: data.userId };
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }

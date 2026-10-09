@@ -7,7 +7,14 @@ function failure(error: unknown) {
   const message = error instanceof Error ? error.message : "Unexpected server error";
   const unavailable = message.includes("MONGODB_URI") || message.includes("SESSION_SECRET");
   const status = unavailable ? 503 : 500;
-  return Response.json({ error: unavailable ? "Configure MONGODB_URI and SESSION_SECRET in .env.local." : "The expense request could not be completed." }, { status });
+  return Response.json(
+    {
+      error: unavailable
+        ? "Configure MONGODB_URI and SESSION_SECRET in .env.local."
+        : "The expense request could not be completed.",
+    },
+    { status },
+  );
 }
 
 function parseExpense(value: unknown) {
@@ -19,8 +26,19 @@ function parseExpense(value: unknown) {
   const date = typeof data.date === "string" ? data.date : "";
   const note = typeof data.note === "string" ? data.note.trim().slice(0, 240) : "";
   const parsedDate = /^\d{4}-\d{2}-\d{2}$/.test(date) ? new Date(`${date}T12:00:00.000Z`) : null;
-  if (!title || title.length > 80 || !Number.isFinite(amount) || amount <= 0 || amount > 100000000 || !parsedDate || Number.isNaN(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== date) return null;
-  if (!["Food", "Transport", "Rent", "Shopping", "Bills", "Health", "Entertainment", "Other"].includes(category)) return null;
+  if (
+    !title ||
+    title.length > 80 ||
+    !Number.isFinite(amount) ||
+    amount <= 0 ||
+    amount > 100000000 ||
+    !parsedDate ||
+    Number.isNaN(parsedDate.getTime()) ||
+    parsedDate.toISOString().slice(0, 10) !== date
+  )
+    return null;
+  if (!["Food", "Transport", "Rent", "Shopping", "Bills", "Health", "Entertainment", "Other"].includes(category))
+    return null;
   return { title, amount: Math.round(amount * 100) / 100, category, date: parsedDate, note, updatedAt: new Date() };
 }
 
@@ -45,8 +63,16 @@ export async function GET(request: Request) {
     if (to) dateRange.$lte = new Date(`${to}T23:59:59.999Z`);
     const filter = from || to ? { userId: session.userId, date: dateRange } : { userId: session.userId };
     const entries = await expenses.find(filter).sort({ date: -1, createdAt: -1 }).limit(1000).toArray();
-    return Response.json(entries.map(({ _id, ...expense }) => ({ ...expense, id: _id.toString(), date: expense.date instanceof Date ? expense.date.toISOString().slice(0, 10) : expense.date })));
-  } catch (error) { return failure(error); }
+    return Response.json(
+      entries.map(({ _id, ...expense }) => ({
+        ...expense,
+        id: _id.toString(),
+        date: expense.date instanceof Date ? expense.date.toISOString().slice(0, 10) : expense.date,
+      })),
+    );
+  } catch (error) {
+    return failure(error);
+  }
 }
 
 export async function POST(request: Request) {
@@ -58,8 +84,13 @@ export async function POST(request: Request) {
     const expenses = await getExpensesCollection();
     const createdAt = new Date();
     const result = await expenses.insertOne({ ...expense, userId: session.userId, createdAt });
-    return Response.json({ ...expense, createdAt, id: result.insertedId.toString(), date: expense.date.toISOString().slice(0, 10) }, { status: 201 });
-  } catch (error) { return failure(error); }
+    return Response.json(
+      { ...expense, createdAt, id: result.insertedId.toString(), date: expense.date.toISOString().slice(0, 10) },
+      { status: 201 },
+    );
+  } catch (error) {
+    return failure(error);
+  }
 }
 
 export async function PUT(request: Request) {
@@ -72,11 +103,17 @@ export async function PUT(request: Request) {
     const expense = parseExpense(body);
     if (!expense) return Response.json({ error: "Enter a title, valid amount, category and date." }, { status: 400 });
     const expenses = await getExpensesCollection();
-    const result = await expenses.findOneAndUpdate({ _id: new ObjectId(id), userId: session.userId }, { $set: expense }, { returnDocument: "after" });
+    const result = await expenses.findOneAndUpdate(
+      { _id: new ObjectId(id), userId: session.userId },
+      { $set: expense },
+      { returnDocument: "after" },
+    );
     if (!result) return Response.json({ error: "Expense not found." }, { status: 404 });
     const { _id, ...saved } = result;
     return Response.json({ ...saved, id: _id.toString(), date: saved.date.toISOString().slice(0, 10) });
-  } catch (error) { return failure(error); }
+  } catch (error) {
+    return failure(error);
+  }
 }
 
 export async function DELETE(request: Request) {
@@ -89,5 +126,7 @@ export async function DELETE(request: Request) {
     const result = await expenses.deleteOne({ _id: new ObjectId(id), userId: session.userId });
     if (!result.deletedCount) return Response.json({ error: "Expense not found." }, { status: 404 });
     return Response.json({ success: true });
-  } catch (error) { return failure(error); }
+  } catch (error) {
+    return failure(error);
+  }
 }

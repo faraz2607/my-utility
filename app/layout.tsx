@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Pocketwise — your personal finance space",
-  description: "A calmer, clearer way to keep track of your everyday expenses.",
+  description: "A calmer, clearer way to keep track of your everyday expenses. Created by Faraz",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

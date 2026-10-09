@@ -45,6 +45,16 @@ type Expense = { id: string; title: string; amount: number; category: string; da
 type User = { id: string; name: string; email: string };
 type DatePreset = "Last 7 days" | "This month" | "Previous month" | "Custom range";
 const categories = ["Food", "Transport", "Rent", "Shopping", "Bills", "Health", "Entertainment", "Other"];
+const categoryPlaceholders: Record<string, string> = {
+  Food: "e.g. Sunday brunch",
+  Transport: "e.g. Auto/Metro",
+  Rent: "e.g. Monthly apartment rent",
+  Shopping: "e.g. New headphones",
+  Bills: "e.g. Electricity bill",
+  Health: "e.g. Pharmacy visit",
+  Entertainment: "e.g. Movie tickets",
+  Other: "e.g. Gift for a friend",
+};
 const EXPENSES_PER_PAGE = 10;
 const icons: Record<string, LucideIcon> = {
   Overview: LayoutDashboard,
@@ -93,6 +103,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState("Manage Expense");
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
+  const [expenseCategory, setExpenseCategory] = useState("Food");
   const [query, setQuery] = useState("");
   const [expensePage, setExpensePage] = useState(1);
   const [period, setPeriod] = useState<DatePreset>("This month");
@@ -280,10 +291,12 @@ export default function Home() {
 
   function openNew() {
     setEditing(null);
+    setExpenseCategory("Food");
     setModal(true);
   }
   function openEdit(expense: Expense) {
     setEditing(expense);
+    setExpenseCategory(expense.category);
     setModal(true);
   }
   async function saveExpense(event: FormEvent<HTMLFormElement>) {
@@ -404,9 +417,12 @@ export default function Home() {
             <button className="icon-button" aria-label="Notifications">
               <Bell size={17} />
             </button>
-            <div className="account-menu-wrap" onBlur={(event) => {
-              if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setAccountMenuOpen(false);
-            }}>
+            <div
+              className="account-menu-wrap"
+              onBlur={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setAccountMenuOpen(false);
+              }}
+            >
               <button
                 className="top-avatar account-avatar"
                 aria-label="Open account menu"
@@ -421,7 +437,13 @@ export default function Home() {
                     <strong>{user.name}</strong>
                     <span>{user.email}</span>
                   </div>
-                  <button role="menuitem" onClick={() => { setAccountMenuOpen(false); void signOut(); }}>
+                  <button
+                    role="menuitem"
+                    onClick={() => {
+                      setAccountMenuOpen(false);
+                      void signOut();
+                    }}
+                  >
                     <LogOut size={15} /> Sign out
                   </button>
                 </div>
@@ -633,24 +655,6 @@ export default function Home() {
                     {formatDate(dateRange.from)} – {formatDate(dateRange.to)}
                   </span>
                 </div>
-                <div className="line-day-summary" aria-live="polite">
-                  <div>
-                    <span className="line-day-date">{selectedDate ? formatDate(selectedDate) : "Select a date"}</span>
-                    <strong>{currency(selectedDayTotal)}</strong>
-                  </div>
-                  <div className="line-day-categories">
-                    {selectedDayCategories.length ? (
-                      selectedDayCategories.map((item) => (
-                        <span className={`line-category-chip`} key={item.category}>
-                          <i className={`line-category-dot ${item.category.toLowerCase()}`} />
-                          {item.category} <strong>{currency(item.amount)}</strong>
-                        </span>
-                      ))
-                    ) : (
-                      <span className="line-no-spend">No expenses recorded for this date</span>
-                    )}
-                  </div>
-                </div>
                 <div className="line-chart-scroll">
                   <svg
                     className="expense-line-graph"
@@ -705,6 +709,24 @@ export default function Home() {
                       </g>
                     ))}
                   </svg>
+                </div>
+                <div className="line-day-summary" aria-live="polite">
+                  <div>
+                    <span className="line-day-date">{selectedDate ? formatDate(selectedDate) : "Select a date"}</span>
+                    <strong>{currency(selectedDayTotal)}</strong>
+                  </div>
+                  <div className="line-day-categories">
+                    {selectedDayCategories.length ? (
+                      selectedDayCategories.map((item) => (
+                        <span className={`line-category-chip`} key={item.category}>
+                          <i className={`line-category-dot ${item.category.toLowerCase()}`} />
+                          {item.category} <strong>{currency(item.amount)}</strong>
+                        </span>
+                      ))
+                    ) : (
+                      <span className="line-no-spend">No expenses recorded for this date</span>
+                    )}
+                  </div>
                 </div>
               </article>
               <article className="panel category-panel">
@@ -869,7 +891,9 @@ export default function Home() {
                       >
                         <ChevronLeft size={15} />
                       </button>
-                      <span>Page {expensePage} of {expensePageCount}</span>
+                      <span>
+                        Page {expensePage} of {expensePageCount}
+                      </span>
                       <button
                         aria-label="Next page"
                         disabled={expensePage >= expensePageCount}
@@ -884,9 +908,7 @@ export default function Home() {
             )}
             {activeTab === "Manage Expense" && (
               <footer className="page-footer">
-                <span>
-                  Made for a little more peace of mind
-                </span>
+                <span>Made for a little more peace of mind</span>
                 <span>YOUR PERSONAL FINANCE SPACE</span>
               </footer>
             )}
@@ -931,12 +953,24 @@ export default function Home() {
               </button>
             </div>
             <label className="field-label">
+              CATEGORY
+              <select
+                name="category"
+                value={expenseCategory}
+                onChange={(event) => setExpenseCategory(event.target.value)}
+              >
+                {categories.map((category) => (
+                  <option key={category}>{category}</option>
+                ))}
+              </select>
+            </label>
+            <label className="field-label">
               WHAT WAS IT FOR?
               <input
                 name="title"
                 maxLength={80}
                 required
-                placeholder="e.g. Sunday brunch"
+                placeholder={categoryPlaceholders[expenseCategory] || "e.g. Expense description"}
                 defaultValue={editing?.title}
               />
             </label>
@@ -958,14 +992,6 @@ export default function Home() {
                 <input name="date" required type="date" defaultValue={editing?.date || currentDate} />
               </label>
             </div>
-            <label className="field-label">
-              CATEGORY
-              <select name="category" defaultValue={editing?.category || "Food"}>
-                {categories.map((category) => (
-                  <option key={category}>{category}</option>
-                ))}
-              </select>
-            </label>
             <label className="field-label">
               A NOTE, IF YOU LIKE{" "}
               <textarea
