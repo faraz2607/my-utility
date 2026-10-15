@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import AuthScreen from "@/app/auth-screen";
+import GstBilling from "@/app/gst-billing";
 import {
   Activity,
   ArrowDownRight,
@@ -56,12 +57,14 @@ const categoryPlaceholders: Record<string, string> = {
   Other: "e.g. Gift for a friend",
 };
 const EXPENSES_PER_PAGE = 10;
+const SIDEBAR_TABS = ["Overview", "Manage Expense", "GST billing", "Budget", "Saving goals", "Settings"];
 const icons: Record<string, LucideIcon> = {
   Overview: LayoutDashboard,
   "Manage Expense": ReceiptText,
   Budget: WalletCards,
   "Saving goals": Target,
   Settings: SettingsIcon,
+  "GST billing": ReceiptText,
   Food: Utensils,
   Rent: House,
   Transport: Bus,
@@ -194,8 +197,22 @@ export default function Home() {
     if (window.matchMedia("(max-width: 760px)").matches) setSidebarOpen(false);
   }, []);
 
+  useEffect(() => {
+    const syncTabFromUrl = () => {
+      const requestedTab = new URLSearchParams(window.location.search).get("tab");
+      setActiveTab(SIDEBAR_TABS.includes(requestedTab || "") ? requestedTab! : "Manage Expense");
+    };
+    syncTabFromUrl();
+    window.addEventListener("popstate", syncTabFromUrl);
+    return () => window.removeEventListener("popstate", syncTabFromUrl);
+  }, []);
+
   function navigate(tab: string) {
     setActiveTab(tab);
+    const url = new URL(window.location.href);
+    if (tab === "Manage Expense") url.searchParams.delete("tab");
+    else url.searchParams.set("tab", tab);
+    window.history.pushState({}, "", `${url.pathname}${url.search}${url.hash}`);
     setModal(false);
     if (window.matchMedia("(max-width: 760px)").matches) setSidebarOpen(false);
   }
@@ -343,7 +360,7 @@ export default function Home() {
     }
   }
 
-  const nav = ["Overview", "Manage Expense", "Budget", "Saving goals"];
+  const nav = ["Overview", "Manage Expense", "GST billing", "Budget", "Saving goals"];
   if (authLoading)
     return (
       <main className="auth-loading">
@@ -913,6 +930,8 @@ export default function Home() {
               </footer>
             )}
           </div>
+        ) : activeTab === "GST billing" ? (
+          <div className="content-wrap"><GstBilling /></div>
         ) : (
           <div className="placeholder-page">
             <span className="placeholder-icon">
